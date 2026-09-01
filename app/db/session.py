@@ -1,5 +1,7 @@
 """Async database engines and session factories."""
 
+import asyncio
+import sys
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
@@ -11,6 +13,13 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
+
+if sys.platform == "win32":
+    # ProactorEventLoop (the Windows default) does not implement the
+    # add_reader/add_writer pair that asyncpg's pure-Python fallback
+    # relies on, which manifests as NotImplementedError deep inside a
+    # Celery task's own event loop. SelectorEventLoop supports both.
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 settings = get_settings()
 
