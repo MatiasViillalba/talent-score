@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
-    Enum,
     ForeignKey,
     Integer,
     String,
@@ -18,11 +17,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPrimaryKey
-from app.models.enums import JobStatus
+from app.models.enums import JOB_STATUS_ENUM, JobStatus
 
 if TYPE_CHECKING:
     from app.models.candidate import Candidate
     from app.models.company import Company
+    from app.models.match import MatchScore
     from app.models.user import User
 
 
@@ -83,11 +83,7 @@ class Job(UUIDPrimaryKey, TimestampMixin, Base):
         server_default=text("false"),
     )
     status: Mapped[JobStatus] = mapped_column(
-        Enum(
-            JobStatus,
-            name="job_status",
-            values_callable=lambda enum: [member.value for member in enum],
-        ),
+        JOB_STATUS_ENUM,
         nullable=False,
         default=JobStatus.OPEN,
     )
@@ -96,5 +92,10 @@ class Job(UUIDPrimaryKey, TimestampMixin, Base):
     creator: Mapped["User"] = relationship(back_populates="created_jobs")
     candidates: Mapped[list["Candidate"]] = relationship(
         back_populates="job",
+        passive_deletes=True,
+    )
+    match_scores: Mapped[list["MatchScore"]] = relationship(
+        back_populates="job",
+        cascade="all, delete-orphan",
         passive_deletes=True,
     )

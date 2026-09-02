@@ -3,18 +3,20 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Enum, ForeignKey, String, text
+from sqlalchemy import Boolean, ForeignKey, String, text
 from sqlalchemy.dialects.postgresql import CITEXT, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPrimaryKey
-from app.models.enums import UserRole
+from app.models.enums import USER_ROLE_ENUM, UserRole
 
 if TYPE_CHECKING:
     from app.models.candidate import Candidate
     from app.models.company import Company
     from app.models.job import Job
+    from app.models.note import Note
+    from app.models.pipeline import StageTransition
 
 
 class User(UUIDPrimaryKey, TimestampMixin, Base):
@@ -32,11 +34,7 @@ class User(UUIDPrimaryKey, TimestampMixin, Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
-        Enum(
-            UserRole,
-            name="user_role",
-            values_callable=lambda enum: [member.value for member in enum],
-        ),
+        USER_ROLE_ENUM,
         nullable=False,
         default=UserRole.RECRUITER,
     )
@@ -50,3 +48,7 @@ class User(UUIDPrimaryKey, TimestampMixin, Base):
     company: Mapped["Company"] = relationship(back_populates="users")
     created_jobs: Mapped[list["Job"]] = relationship(back_populates="creator")
     uploaded_candidates: Mapped[list["Candidate"]] = relationship(back_populates="uploader")
+    notes: Mapped[list["Note"]] = relationship(back_populates="author")
+    stage_transitions: Mapped[list["StageTransition"]] = relationship(
+        back_populates="changed_by_user"
+    )

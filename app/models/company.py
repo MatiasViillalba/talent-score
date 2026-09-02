@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.job import Job
     from app.models.subscription import Subscription, UsageRecord
     from app.models.user import User
+    from app.models.webhook import Webhook
 
 
 class Company(UUIDPrimaryKey, TimestampMixin, Base):
@@ -55,6 +56,11 @@ class Company(UUIDPrimaryKey, TimestampMixin, Base):
         passive_deletes=True,
     )
     candidates: Mapped[list["Candidate"]] = relationship(
+        back_populates="company",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    webhooks: Mapped[list["Webhook"]] = relationship(
         back_populates="company",
         cascade="all, delete-orphan",
         passive_deletes=True,

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     Numeric,
@@ -23,11 +22,19 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPrimaryKey
-from app.models.enums import CandidateStage, ParseStatus
+from app.models.enums import (
+    CANDIDATE_STAGE_ENUM,
+    PARSE_STATUS_ENUM,
+    CandidateStage,
+    ParseStatus,
+)
 
 if TYPE_CHECKING:
     from app.models.company import Company
     from app.models.job import Job
+    from app.models.match import MatchScore
+    from app.models.note import Note
+    from app.models.pipeline import StageTransition
     from app.models.user import User
 
 
@@ -64,20 +71,12 @@ class Candidate(UUIDPrimaryKey, TimestampMixin, Base):
     file_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     parse_status: Mapped[ParseStatus] = mapped_column(
-        Enum(
-            ParseStatus,
-            name="parse_status",
-            values_callable=lambda enum: [member.value for member in enum],
-        ),
+        PARSE_STATUS_ENUM,
         nullable=False,
         default=ParseStatus.PENDING,
     )
     stage: Mapped[CandidateStage] = mapped_column(
-        Enum(
-            CandidateStage,
-            name="candidate_stage",
-            values_callable=lambda enum: [member.value for member in enum],
-        ),
+        CANDIDATE_STAGE_ENUM,
         nullable=False,
         default=CandidateStage.SCREENING,
     )
@@ -90,6 +89,22 @@ class Candidate(UUIDPrimaryKey, TimestampMixin, Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         uselist=False,
+    )
+    match_scores: Mapped[list["MatchScore"]] = relationship(
+        back_populates="candidate",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    notes: Mapped[list["Note"]] = relationship(
+        back_populates="candidate",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    stage_transitions: Mapped[list["StageTransition"]] = relationship(
+        back_populates="candidate",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="StageTransition.created_at",
     )
 
 

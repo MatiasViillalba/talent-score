@@ -14,10 +14,15 @@ from app.models.enums import (
     SubscriptionPlan,
     SubscriptionStatus,
     UserRole,
+    WebhookEventType,
 )
 from app.models.job import Job
+from app.models.match import MatchScore
+from app.models.note import Note
+from app.models.pipeline import StageTransition
 from app.models.subscription import Subscription, UsageRecord
 from app.models.user import User
+from app.models.webhook import Webhook, WebhookDelivery
 
 __all__ = [
     "Candidate",
@@ -26,11 +31,17 @@ __all__ = [
     "Company",
     "Job",
     "JobStatus",
+    "MatchScore",
+    "Note",
     "ParseStatus",
+    "StageTransition",
     "Subscription",
     "SubscriptionPlan",
     "SubscriptionStatus",
     "UsageRecord",
     "User",
     "UserRole",
+    "Webhook",
+    "WebhookDelivery",
+    "WebhookEventType",
 ]

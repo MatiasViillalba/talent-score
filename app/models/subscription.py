@@ -8,7 +8,6 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     String,
@@ -20,7 +19,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPrimaryKey
-from app.models.enums import SubscriptionPlan, SubscriptionStatus
+from app.models.enums import (
+    SUBSCRIPTION_PLAN_ENUM,
+    SUBSCRIPTION_STATUS_ENUM,
+    SubscriptionPlan,
+    SubscriptionStatus,
+)
 
 if TYPE_CHECKING:
     from app.models.company import Company
@@ -51,20 +55,12 @@ class Subscription(UUIDPrimaryKey, TimestampMixin, Base):
         unique=True,
     )
     plan: Mapped[SubscriptionPlan] = mapped_column(
-        Enum(
-            SubscriptionPlan,
-            name="subscription_plan",
-            values_callable=lambda enum: [member.value for member in enum],
-        ),
+        SUBSCRIPTION_PLAN_ENUM,
         nullable=False,
         default=SubscriptionPlan.STARTER,
     )
     status: Mapped[SubscriptionStatus] = mapped_column(
-        Enum(
-            SubscriptionStatus,
-            name="subscription_status",
-            values_callable=lambda enum: [member.value for member in enum],
-        ),
+        SUBSCRIPTION_STATUS_ENUM,
         nullable=False,
         default=SubscriptionStatus.TRIALING,
     )
