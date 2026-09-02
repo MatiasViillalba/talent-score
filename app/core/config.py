@@ -1,10 +1,10 @@
 """Application settings, loaded and validated from the environment."""
 
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -54,12 +54,16 @@ class Settings(BaseSettings):
     HIGH_MATCH_THRESHOLD: int = 80
     REPORTS_RETENTION_DAYS: int = 30
     STORAGE_DIR: str = "storage"
-    CORS_ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
+    CORS_ALLOWED_ORIGINS: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
 
     @field_validator("CORS_ALLOWED_ORIGINS", mode="before")
     @classmethod
     def _split_cors_origins(cls, value: str | list[str]) -> str | list[str]:
-        """Accept a comma-separated env value in addition to a JSON list.
+        """Split the comma-separated origin list coming from the environment.
+
+        The field is annotated with ``NoDecode`` because pydantic-settings
+        otherwise JSON-decodes complex types inside the environment source,
+        which fails before any validator runs.
 
         Args:
             value: The raw value from the environment or a default list.
