@@ -78,6 +78,11 @@ class WebhookDelivery(UUIDPrimaryKey, Base):
     retry logic only advances ``attempts``, ``response_status`` and
     ``delivered`` on the existing row, so the table records the full
     delivery history without an ``updated_at``.
+
+    ``created_at`` defaults to ``clock_timestamp()`` rather than ``now()``:
+    the latter is the transaction timestamp and stays frozen for the whole
+    transaction, which would give deliveries fanned out to several
+    webhooks at once an identical value and leave their order undefined.
     """
 
     __tablename__ = "webhook_deliveries"
@@ -116,7 +121,7 @@ class WebhookDelivery(UUIDPrimaryKey, Base):
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=func.now(),
+        server_default=func.clock_timestamp(),
     )
 
     webhook: Mapped["Webhook"] = relationship(back_populates="deliveries")
