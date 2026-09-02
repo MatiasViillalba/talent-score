@@ -14,8 +14,14 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        additional_dependencies: [pydantic>=2.9]
-        args: [--config-file=pyproject.toml]
+        pass_filenames: false
+        args: [app]
+        additional_dependencies:
+          - pydantic>=2.9
+          - pydantic-settings>=2.5
+          - sqlalchemy[asyncio]>=2.0
+          - fastapi>=0.115
+          - redis>=5.1
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

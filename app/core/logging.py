@@ -83,9 +83,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     clients can correlate their request with server-side log lines.
     """
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = request.headers.get(REQUEST_ID_HEADER, str(uuid.uuid4()))
         token = _request_id_ctx_var.set(request_id)
         try:

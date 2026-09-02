@@ -83,4 +83,4 @@ def get_settings() -> Settings:
     Returns:
         The validated application settings, built once per process.
     """
-    return Settings()  # type: ignore[call-arg]
+    return Settings()
