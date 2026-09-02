@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response, status
 from redis.asyncio import Redis
 from sqlalchemy import text
 
@@ -13,8 +13,16 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-async def health_check() -> dict[str, Any]:
+async def health_check(response: Response) -> dict[str, Any]:
     """Report process liveness plus a round trip to the database and Redis.
+
+    A degraded result is reported as ``503`` and not only in the payload,
+    because orchestrator health checks and load balancers route on the
+    status code alone.
+
+    Args:
+        response: The outgoing response, whose status code is downgraded
+            when a dependency is unreachable.
 
     Returns:
         A payload with an overall status and the individual status of
@@ -39,5 +47,11 @@ async def health_check() -> dict[str, Any]:
     finally:
         await redis_client.aclose()
 
-    overall = "ok" if all(value == "ok" for value in dependencies.values()) else "degraded"
-    return {"status": overall, "dependencies": dependencies}
+    healthy = all(value == "ok" for value in dependencies.values())
+    if not healthy:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return {
+        "status": "ok" if healthy else "degraded",
+        "dependencies": dependencies,
+    }
