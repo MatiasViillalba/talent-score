@@ -27,3 +27,30 @@ class SubscriptionStatus(StrEnum):
     ACTIVE = "active"
     PAST_DUE = "past_due"
     CANCELED = "canceled"
+
+
+class JobStatus(StrEnum):
+    """Publication state of a job posting."""
+
+    OPEN = "open"
+    CLOSED = "closed"
+    ARCHIVED = "archived"
+
+
+class ParseStatus(StrEnum):
+    """Progress of the asynchronous resume parsing pipeline."""
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class CandidateStage(StrEnum):
+    """Position of a candidate in the recruitment pipeline."""
+
+    SCREENING = "screening"
+    INTERVIEW = "interview"
+    OFFER = "offer"
+    HIRED = "hired"
+    REJECTED = "rejected"

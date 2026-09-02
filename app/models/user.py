@@ -12,7 +12,9 @@ from app.db.mixins import TimestampMixin, UUIDPrimaryKey
 from app.models.enums import UserRole
 
 if TYPE_CHECKING:
+    from app.models.candidate import Candidate
     from app.models.company import Company
+    from app.models.job import Job
 
 
 class User(UUIDPrimaryKey, TimestampMixin, Base):
@@ -46,3 +48,5 @@ class User(UUIDPrimaryKey, TimestampMixin, Base):
     )
 
     company: Mapped["Company"] = relationship(back_populates="users")
+    created_jobs: Mapped[list["Job"]] = relationship(back_populates="creator")
+    uploaded_candidates: Mapped[list["Candidate"]] = relationship(back_populates="uploader")

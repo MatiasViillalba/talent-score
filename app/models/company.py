@@ -10,6 +10,8 @@ from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPrimaryKey
 
 if TYPE_CHECKING:
+    from app.models.candidate import Candidate
+    from app.models.job import Job
     from app.models.subscription import Subscription, UsageRecord
     from app.models.user import User
 
@@ -43,6 +45,16 @@ class Company(UUIDPrimaryKey, TimestampMixin, Base):
         uselist=False,
     )
     usage_records: Mapped[list["UsageRecord"]] = relationship(
+        back_populates="company",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    jobs: Mapped[list["Job"]] = relationship(
+        back_populates="company",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    candidates: Mapped[list["Candidate"]] = relationship(
         back_populates="company",
         cascade="all, delete-orphan",
         passive_deletes=True,
