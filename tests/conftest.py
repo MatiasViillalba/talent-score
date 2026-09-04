@@ -10,6 +10,12 @@ replaying the migration history: it keeps the fixture fast and pins the
 suite to the mapping the repositories consume. Migration correctness is a
 separate concern, asserted by applying them in CI against an empty
 database.
+
+Isolation is per test and survives the code under test committing: each
+test owns a connection with an open transaction, and its session joins
+that transaction through a SAVEPOINT. Rolling the outer transaction back
+on teardown discards every write, so the schema is created once while the
+data never outlives the test that wrote it.
 """
 
 import os
@@ -18,7 +24,12 @@ from collections.abc import AsyncGenerator
 import pytest
 from sqlalchemy import URL, make_url, text
 from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+)
 from sqlalchemy.pool import NullPool
 
 from app import models  # noqa: F401
@@ -170,17 +181,47 @@ async def db_engine(test_database_url: URL) -> AsyncGenerator[AsyncEngine]:
 
 
 @pytest.fixture
-async def db_session(db_engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
-    """Provide a session whose writes are discarded once the test ends.
+async def db_connection(db_engine: AsyncEngine) -> AsyncGenerator[AsyncConnection]:
+    """Provide a connection holding the transaction that owns the test.
+
+    The transaction is never committed: rolling it back on teardown is
+    what discards the rows the test produced, whatever the code under
+    test did with its own session.
 
     Args:
         db_engine: The session-scoped engine bound to the test schema.
 
     Yields:
-        An ``AsyncSession`` rolled back when the test returns.
+        An ``AsyncConnection`` with an open transaction.
     """
-    async with AsyncSession(bind=db_engine, expire_on_commit=False) as session:
+    async with db_engine.connect() as connection:
+        transaction = await connection.begin()
         try:
-            yield session
+            yield connection
         finally:
-            await session.rollback()
+            await transaction.rollback()
+
+
+@pytest.fixture
+async def db_session(db_connection: AsyncConnection) -> AsyncGenerator[AsyncSession]:
+    """Provide a session whose writes never outlive the test.
+
+    The session joins the transaction already open on the connection by
+    opening a SAVEPOINT instead of taking the transaction over. A
+    ``commit()`` from the code under test then releases that savepoint
+    and opens the next one, which keeps the call observable to the test
+    while leaving the outer transaction — and therefore the rollback that
+    cleans up — under the fixture's control.
+
+    Args:
+        db_connection: The connection whose transaction bounds the test.
+
+    Yields:
+        An ``AsyncSession`` bound to the test's connection.
+    """
+    async with AsyncSession(
+        bind=db_connection,
+        join_transaction_mode="create_savepoint",
+        expire_on_commit=False,
+    ) as session:
+        yield session
