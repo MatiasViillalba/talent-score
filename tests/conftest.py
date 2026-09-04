@@ -22,6 +22,7 @@ import os
 from collections.abc import AsyncGenerator
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import URL, make_url, text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import (
@@ -35,6 +36,8 @@ from sqlalchemy.pool import NullPool
 from app import models  # noqa: F401
 from app.core.config import get_settings
 from app.db.base import Base
+from app.db.session import get_db
+from app.main import create_app
 
 TEST_DATABASE_SUFFIX = "_test"
 MAINTENANCE_DATABASE = "postgres"
@@ -225,3 +228,26 @@ async def db_session(db_connection: AsyncConnection) -> AsyncGenerator[AsyncSess
         expire_on_commit=False,
     ) as session:
         yield session
+
+
+@pytest.fixture
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
+    """Provide an HTTP client calling the application in-process.
+
+    The database dependency is overridden with the test's own session, so
+    a request and the assertions that follow it read the same rows and
+    the whole exchange stays inside the transaction that is rolled back
+    on teardown.
+
+    Args:
+        db_session: The session the request handlers write through.
+
+    Yields:
+        An ``AsyncClient`` bound to the application via ASGI, without a
+        socket in between.
+    """
+    app = create_app()
+    app.dependency_overrides[get_db] = lambda: db_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as http_client:
+        yield http_client
